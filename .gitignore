@@ -29,5 +29,4 @@ wheels/
 *.egg
 
 # PyCharm specific files
-.idea/
-/.idea
+.idea/*
