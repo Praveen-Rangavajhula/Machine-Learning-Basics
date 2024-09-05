@@ -30,3 +30,4 @@ wheels/
 
 # PyCharm specific files
 .idea/
+/.idea
