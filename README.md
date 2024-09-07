@@ -7,7 +7,7 @@ This repository contains implementations of various basic machine learning model
 ## Project Structure
 
 - **`src/`**: Contains scripts for training and evaluating models.
-  - `training.py`: The script is currently unused, but will be used for training the Linear Regression model. More training scripts will be added for other models.
+  - `training.py`: The script is used for training the Linear Regression model. More training scripts will be added for other models.
 
 - **`model/`**: Contains individual scripts for different machine learning models.
   - `linear_regression.py`: Contains the implementation and training of the Linear Regression model. Additional model scripts will be added here.
