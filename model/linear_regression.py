@@ -20,7 +20,7 @@ class LinearRegression:
 
     def __init__(self, learning_rate=0.25, epochs=10000):
         """
-        Constructor to initialize parameters for the linear regression model.
+        Constructor to initialize parameters for the linear regression with a single feature model.
 
         Parameters:
         - learning_rate: Step size for updating parameters during gradient descent.
@@ -51,12 +51,14 @@ class LinearRegression:
         - X: Input feature values.
         - target: Actual target values.
         """
+        m = len(target)
+
         for i in range(self.epochs):
             y_pred = self.predict(x)
 
             # Gradient descent updates for parameter (weight) and bias
-            self.bias -= self.learning_rate * (1 / len(target)) * np.sum(y_pred - target)
-            self.parameter -= self.learning_rate * (1 / len(target)) * np.sum((y_pred - target) * x)
+            self.bias -= self.learning_rate * (1 / m) * np.sum(y_pred - target)
+            self.parameter -= self.learning_rate * (1 / m) * np.sum((y_pred - target) * x)
 
             # (Optional) Uncomment to print loss every 1000 epochs
             # if i % 1000 == 0:
