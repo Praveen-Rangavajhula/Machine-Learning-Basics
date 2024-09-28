@@ -1,3 +1,5 @@
+import numpy as np
+from matplotlib import pyplot as plt
 
 
 def compute_loss(y_pred, target):
