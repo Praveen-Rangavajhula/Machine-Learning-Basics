@@ -1,13 +1,10 @@
-import matplotlib.pyplot as plt
-import numpy as np
 import pandas as pd
-import seaborn as sns
-import scipy as sp
-from sklearn.linear_model import LinearRegression
+from sklearn.linear_model import LinearRegression as SKLinearRegression
 from sklearn.metrics import mean_squared_error
 from sklearn.model_selection import train_test_split
 from data.data_loader import load_diabetes_data
-from statsmodels.stats.outliers_influence import variance_inflation_factor
+from model.linear_regression import LinearRegression
+import model.visualization as visualize
 
 diabetes_data = load_diabetes_data()
 
@@ -18,18 +15,13 @@ y = diabetes_data['target']
 # Split the data into training and test sets
 X_train, X_test, y_train, y_test = train_test_split(X, y, train_size=0.3, random_state=49)
 
-# Add a column of ones to X_train and X_test to represent the intercept term (x0 = 1)
-X_train_0   = np.c_[np.ones((X_train.shape[0], 1)), X_train]
-X_test_0    = np.c_[np.ones((X_test.shape[0], 1)), X_test]
-
-# Normal Equation
-theta = np.matmul(
-    np.linalg.inv( np.matmul(X_train_0.T, X_train_0) ),
-    np.matmul(X_train_0.T, y_train)
-)
+# Train using custom implementation (Uses Normal Equation)
+linear_regression = LinearRegression()
+linear_regression.fit(X_train, y_train)
+theta = linear_regression.theta
 
 # Create parameters for the linear regression model
-parameters = ['theta_'+str(i) for i in range(X_train_0.shape[1])]
+parameters = ['theta_' + str(i) for i in range(len(theta))]
 columns = ['intercept'] + list(X.columns.values)
 parameter_df = pd.DataFrame({
     'Parameters': parameters,
@@ -37,101 +29,44 @@ parameter_df = pd.DataFrame({
     'Theta': theta
 })
 
-linear_regression_model = LinearRegression()
-linear_regression_model.fit(X_train, y_train)
-
-sk_theta = [linear_regression_model.intercept_] + list(linear_regression_model.coef_)
-parameter_df = parameter_df.join(pd.Series(sk_theta, name='Sklearn_theta'))
-print(parameter_df.head())
-
 # Model Evaluation
-y_pred_eval = np.matmul(X_test_0, theta)
+y_pred_eval = linear_regression.predict(X_test)  # Use predictions from the test set
+J_mse, r_square = linear_regression.evaluate(X_test, y_test)
 
-# MSE calculation
-J_mse = np.sum((y_pred_eval - y_test) ** 2) / (X_test_0.shape[0])
-
-# R_square calculation
-sse = J_mse * X_test_0.shape[0]
-sst = np.sum((y_test - y_test.mean()) ** 2)
-r_square = 1 - (sse/sst)
 print('The Mean Square Error (MSE) or J (theta) is: ', J_mse)
 print('R square obtained for normal equation method is: ', r_square)
 
-# sklearn regression module
-y_pred_sk = linear_regression_model.predict(X_test)
+# Sklearn regression module
+sk_linear_regression = SKLinearRegression()
+sk_linear_regression.fit(X_train, y_train)
 
-# Evaluation: MSE
+# Get coefficients and intercept from the sklearn model
+sk_theta = [sk_linear_regression.intercept_] + list(sk_linear_regression.coef_)
+# Join the sklearn parameters to the existing DataFrame
+parameter_df = parameter_df.join(pd.Series(sk_theta, name='Sklearn_theta'))
 
-J_mse_sk = mean_squared_error(y_pred_sk, y_test)
+# Print the parameters DataFrame
+print(parameter_df)
 
-# R_square
-r_square_sk = linear_regression_model.score(X_test,y_test)
-print('The Mean Square Error (MSE) or J (theta) is: ',J_mse_sk)
-print('R square obtained for scikit learn library is :',r_square_sk)
+# Prediction using sklearn model
+y_pred_sk = sk_linear_regression.predict(X_test)
 
-# Model Validation
-# 1. Check for linearity
-plt.figure(figsize=(14, 8))
-sns.scatterplot(x=y_test, y=y_pred_eval, color='r')
-plt.title("Checking for linearity:\n"
-          "Actual vs Predicted target values")
-plt.xlabel("Actual target values")
-plt.ylabel("Predicted target values")
+# Evaluation for sklearn model
+J_mse_sk = mean_squared_error(y_test, y_pred_sk)  # Correct the order of arguments
+r_square_sk = sk_linear_regression.score(X_test, y_test)
 
-# Adding a reference line for better visualization
-max_value = max(y_test.max(), y_pred_eval.max())
-min_value = min(y_test.min(), y_pred_eval.min())
-plt.plot([min_value, max_value], [min_value, max_value], color='blue', linestyle='--', linewidth=2)
+print('The Mean Square Error (MSE) or J (theta) for scikit learn library is: ', J_mse_sk)
+print('R square obtained for scikit learn library is: ', r_square_sk)
 
-plt.xlim(min_value, max_value)
-plt.ylim(min_value, max_value)
-plt.grid()
+# Check for linear relationship
+visualize.plot_linearity(y_test, y_pred_eval)
 
-plt.show()
+# Check for residual error normality
+e = visualize.plot_residual_normality(y_test, y_pred_eval)
 
-# 2. Check for Residual Normality and Mean
-plt.figure(figsize=(14, 8))
-e = y_test - y_pred_eval
-sns.histplot(e, color='b', kde=True, stat='density', bins=30)
-plt.title("Checking for Residual Normality and Mean:\n"
-          "Residual Error (e)")
-plt.xlabel("Residuals")
-plt.ylabel("Density")
+# Check for multivariate normality using a Q-Q plot
+r = visualize.plot_multivariate_normality(e)
 
-mean_residual = np.mean(e)
-plt.axvline(mean_residual, color='red', linestyle='--', linewidth=2, label=f'Mean = {mean_residual:.2f}')
+# Check for homoscedasticity and calculate VIF
+vif_data = visualize.plot_homoscedasticity_and_vif(y_pred_eval, e, X_test)
 
-plt.legend()
-plt.show()
-
-# 3. Check for Multivariate Normality
-# Using a Quantile-Quantile Plot
-plt.figure(figsize=(14, 8))
-_, (ax, _, r) = sp.stats.probplot(e, dist="norm", plot=plt)  # Specifying the normal distribution
-plt.title("Check for Multivariate Normality\nQ-Q Plot")
-plt.xlabel("Theoretical Quantiles")
-plt.ylabel("Sample Quantiles")
-
-plt.show()
-
-print(f"Correlation coefficient (r): {r:.4f}")
-
-# 4. Check for Homoscedasticity
-plt.figure(figsize=(14,8))
-sns.scatterplot(x=y_pred_eval, y=e, color='green')
-plt.title("Check for Homoscedasticity\n"
-          "Residual Error vs Predicted target values")
-plt.xlabel("Predicted Target Values")
-plt.ylabel("Residuals")
-
-plt.axhline(0, color='red', linestyle='--', linewidth=2)  # Add a horizontal line at y=0
-plt.grid()
-plt.show()
-
-# Variance Inflation Factor
-# Create a DataFrame to hold the VIF values
-vif_data = pd.DataFrame()
-vif_data['Feature'] = X.columns
-vif_data['VIF'] = [variance_inflation_factor(X.values, i) for i in range(X.shape[1])]
-
-print(vif_data)
