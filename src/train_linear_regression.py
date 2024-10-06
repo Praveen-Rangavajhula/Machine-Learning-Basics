@@ -57,4 +57,31 @@ r_square_sk = sk_linear_regression.score(X_train, y_train)
 print('The Mean Square Error (MSE) or J (theta) for scikit learn library is: ', J_mse_sk)
 print('R square obtained for scikit learn library is: ', r_square_sk)
 
+# Visualize actual vs predicted values on the training data using sklearn model
 visualize.plot_actual_vs_predicted(y_train, y_pred_sk)
+
+# Predict the target values on the test data using the custom linear regression model
+y_test_pred = linear_regression.predict(X_test)
+
+# Visualize actual vs predicted values on the test data using the custom model
+visualize.plot_actual_vs_predicted(y_test, y_test_pred)
+
+# Evaluate the custom model performance on the test data
+mse_test, r_square_test = linear_regression.evaluate(X_test, y_test)
+
+# Print the evaluation metrics for the test data
+print(f'Test Mean Square Error (MSE): {mse_test}')
+print(f'Test R² score: {r_square_test}')
+
+# Visualize the residuals and other diagnostic plots
+# Plot the density of residuals
+e = visualize.plot_residual_density(y_test, y_test_pred)
+
+# Plot the multivariate Q-Q plot of residuals
+visualize.plot_multivariate_qq(e)
+
+# Plot homoscedasticity and calculate Variance Inflation Factor (VIF)
+vif_data = visualize.plot_homoscedasticity_and_vif(y_test_pred, e, X_test)
+
+# Print the Variance Inflation Factor (VIF) data
+print(vif_data)
