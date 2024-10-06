@@ -5,34 +5,57 @@ from matplotlib import pyplot as plt
 import seaborn as sns
 from statsmodels.stats.outliers_influence import variance_inflation_factor
 
+def add_reference_line(y_actual, y_pred):
+    """
+    Add a reference line to the plot for better visualization.
 
-def plot_linearity(y_test, y_pred_eval):
-    """Check for linearity by plotting actual vs predicted target values."""
+    Parameters:
+    y_actual (array-like): Actual target values.
+    y_pred (array-like): Predicted target values.
+    """
+    max_value = max(y_actual.max(), y_pred.max())
+    min_value = min(y_actual.min(), y_pred.min())
+    plt.plot([min_value, max_value], [min_value, max_value], color='blue', linestyle='--', linewidth=2)
+    plt.xlim(min_value, max_value)
+    plt.ylim(min_value, max_value)
+
+def plot_actual_vs_predicted(y_actual, y_pred):
+    """
+    Plot actual vs predicted target values to check for linearity.
+
+    Parameters:
+    y_actual (array-like): Actual target values.
+    y_pred (array-like): Predicted target values.
+    """
     try:
         plt.figure(figsize=(14, 8))
-        sns.scatterplot(x=y_test, y=y_pred_eval, color='r')
+        sns.scatterplot(x=y_actual, y=y_pred, color='r')
         plt.title("Checking for linearity:\nActual vs Predicted target values")
         plt.xlabel("Actual target values")
         plt.ylabel("Predicted target values")
 
         # Adding a reference line for better visualization
-        max_value = max(y_test.max(), y_pred_eval.max())
-        min_value = min(y_test.min(), y_pred_eval.min())
-        plt.plot([min_value, max_value], [min_value, max_value], color='blue', linestyle='--', linewidth=2)
+        add_reference_line(y_actual, y_pred)
 
-        plt.xlim(min_value, max_value)
-        plt.ylim(min_value, max_value)
         plt.grid()
         plt.show()
     except Exception as e:
         print(f"Error in plot_linearity: {e}")
 
+def plot_residual_density(y_actual, y_pred):
+    """
+    Plot the density of residuals to check for normality and mean.
 
-def plot_residual_normality(y_test, y_pred_eval):
-    """Check for residual normality and mean by plotting residuals."""
+    Parameters:
+    y_actual (array-like): Actual target values.
+    y_pred (array-like): Predicted target values.
+
+    Returns:
+    array-like: Residuals (errors) between actual and predicted values.
+    """
     try:
         plt.figure(figsize=(14, 8))
-        e = y_test - y_pred_eval
+        e = y_actual - y_pred
         sns.histplot(e, color='b', kde=True, stat='density', bins=30)
         plt.title("Checking for Residual Normality and Mean:\nResidual Error (e)")
         plt.xlabel("Residuals")
@@ -49,9 +72,16 @@ def plot_residual_normality(y_test, y_pred_eval):
         print(f"Error in plot_residual_normality: {e}")
         return None
 
+def plot_multivariate_qq(e):
+    """
+    Plot a Q-Q plot to check for multivariate normality.
 
-def plot_multivariate_normality(e):
-    """Check for multivariate normality using a Q-Q plot and return the correlation coefficient."""
+    Parameters:
+    e (array-like): Residuals (errors) between actual and predicted values.
+
+    Returns:
+    float: Correlation coefficient (r) from the Q-Q plot.
+    """
     try:
         plt.figure(figsize=(14, 8))
         _, (ax, _, r) = sp.stats.probplot(e, dist="norm", plot=plt)  # Specifying the normal distribution
@@ -66,13 +96,22 @@ def plot_multivariate_normality(e):
         print(f"Error in plot_multivariate_normality: {e}")
         return None
 
+def plot_homoscedasticity_and_vif(y_pred, e, X):
+    """
+    Plot residuals vs predicted values to check for homoscedasticity and calculate Variance Inflation Factor (VIF).
 
-def plot_homoscedasticity_and_vif(y_pred_eval, e, X):
-    """Check for homoscedasticity and calculate Variance Inflation Factor (VIF)."""
+    Parameters:
+    y_pred (array-like): Predicted target values.
+    e (array-like): Residuals (errors) between actual and predicted values.
+    X (DataFrame): DataFrame containing the features used in the model.
+
+    Returns:
+    DataFrame: DataFrame containing VIF values for each feature.
+    """
     try:
         # Check for Homoscedasticity
         plt.figure(figsize=(14, 8))
-        sns.scatterplot(x=y_pred_eval, y=e, color='green')
+        sns.scatterplot(x=y_pred, y=e, color='green')
         plt.title("Check for Homoscedasticity\nResidual Error vs Predicted target values")
         plt.xlabel("Predicted Target Values")
         plt.ylabel("Residuals")
