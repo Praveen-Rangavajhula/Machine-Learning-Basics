@@ -1,85 +1,72 @@
 import numpy as np
-import matplotlib.pyplot as plt
-
-
-def compute_loss(y_pred, target):
-    """
-    Compute Mean Squared Error (MSE) loss.
-
-    Parameters:
-    - y_pred: Predicted target values.
-    - target: Actual target values.
-
-    Returns:
-    - loss: The computed MSE loss.
-    """
-    return (1 / len(target)) * np.sum(np.power(y_pred - target, 2))
-
+from sklearn.metrics import mean_squared_error
 
 class LinearRegression:
-
-    def __init__(self, learning_rate=0.25, epochs=10000):
+    def __init__(self):
         """
-        Constructor to initialize parameters for the linear regression with a single feature model.
+        Initialize the LinearRegression model.
+        """
+        self.theta = None
+
+    def fit(self, X, y):
+        """
+        Fit the model using the Normal Equation method.
 
         Parameters:
-        - learning_rate: Step size for updating parameters during gradient descent.
-        - epochs: Number of iterations to run gradient descent.
+        X (array-like): Feature matrix.
+        y (array-like): Target vector.
         """
-        self.learning_rate = learning_rate
-        self.epochs = epochs
-        self.parameter = np.random.rand()  # Initialize parameter (weight)
-        self.bias = np.random.rand()  # Initialize bias (intercept)
+        X_0 = np.c_[np.ones((X.shape[0], 1)), X]  # Add intercept term
+        try:
+            self.theta = np.linalg.pinv(X_0.T @ X_0) @ (X_0.T @ y)  # Normal Equation
+        except np.linalg.LinAlgError as e:
+            print(f"Error in fitting model: {e}")
+            self.theta = None
 
-    def predict(self, x):
+    def predict(self, X):
         """
-        Predict output using the learned parameter and bias.
+        Predict the target values using the fitted model.
 
         Parameters:
-        - X: Input feature values.
+        X (array-like): Feature matrix.
 
         Returns:
-        - y_pred: Predicted target values.
+        array-like: Predicted target values.
         """
-        return self.parameter * x + self.bias
+        if self.theta is None:
+            raise ValueError("Model is not fitted yet. Please call 'fit' before predicting.")
+        X_0 = np.c_[np.ones((X.shape[0], 1)), X]  # Add intercept term
+        return X_0 @ self.theta
 
-    def train(self, x, target):
+    def evaluate(self, X, y):
         """
-        Train the linear regression model using gradient descent.
+        Evaluate the model performance using MSE and R² score.
 
         Parameters:
-        - X: Input feature values.
-        - target: Actual target values.
+        X (array-like): Feature matrix.
+        y (array-like): Target vector.
+
+        Returns:
+        tuple: Mean Squared Error (MSE) and R² score.
         """
-        m = len(target)
+        y_pred = self.predict(X)
+        mse = mean_squared_error(y, y_pred)
+        r_squared = 1 - (np.sum((y - y_pred) ** 2) / np.sum((y - np.mean(y)) ** 2))
+        return mse, r_squared
 
-        for i in range(self.epochs):
-            y_pred = self.predict(x)
-
-            # Gradient descent updates for parameter (weight) and bias
-            self.bias -= self.learning_rate * (1 / m) * np.sum(y_pred - target)
-            self.parameter -= self.learning_rate * (1 / m) * np.sum((y_pred - target) * x)
-
-            # (Optional) Uncomment to print loss every 1000 epochs
-            # if i % 1000 == 0:
-            #     loss = self.compute_loss(y_pred, target)
-            #     print(f'Epoch {i}, Loss: {loss}')
-
-        final_loss = compute_loss(self.predict(x), target)
-        print(f'Final Loss after training: {final_loss}')
-
-    def plot(self, x, target):
+    def get_params(self):
         """
-        Plot the original data points and the best-fit line.
+        Get model parameters: intercept and coefficients.
 
-        Parameters:
-        - x: Input feature values.
-        - target: Actual target values.
+        Returns:
+        list: Intercept and coefficients.
+
+        Raises:
+        ValueError: If the model is not fitted yet.
         """
-        plt.scatter(x, target, label='Data points')
-        plt.plot(x, self.predict(x), color='red', label='Best fit line')
-        plt.title("Linear Regression - Best Fit Line")
-        plt.xlabel("X")
-        plt.ylabel("target")
-        plt.legend()
-        plt.show()
+        if self.theta is not None:
+            intercept = self.theta[0]
+            coefficients = self.theta[1:]
+            return [intercept] + list(coefficients)
+        else:
+            raise ValueError("Model is not fitted yet. Please call 'fit' before getting parameters.")
